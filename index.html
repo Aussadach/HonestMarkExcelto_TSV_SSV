@@ -78,8 +78,8 @@
             let fileContent = '';
             data.forEach(row => {
                 fileContent += row.map(cell => {
-                    // Check if the cell value is a valid date
-                    const isValidDate = !isNaN(Date.parse(cell));
+                    // Check if the cell value is a valid date and not just a number
+                    const isValidDate = !isNaN(Date.parse(cell)) && isNaN(cell);
                     return isValidDate ? formatDate(cell, datetimeFormat) : cell;
                 }).join(separator) + '\n';
             });
