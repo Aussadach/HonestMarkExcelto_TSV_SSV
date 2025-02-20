@@ -6,6 +6,7 @@
     <title>SheetJS Upload Example</title>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 </head>
 <body>
     <div class="container mt-5">
@@ -68,10 +69,11 @@
             const ws = workbook.Sheets[firstSheetName];
             const data = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true });
 
-            // Function to format datetime values
+            // Function to format datetime values using moment.js
             function formatDate(value, format) {
-                const date = new Date(value);
-                return format === 'datetime' ? date.toISOString() : date.toISOString().split('T')[0];
+                const date = moment(value, ['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY'], true);
+                if (!date.isValid()) return value;
+                return format === 'datetime' ? date.format('YYYY/MM/DD HH:mm:ss') : date.format('DD/MM/YYYY');
             }
 
             // Build TSV/CSV string manually using the chosen separator and datetime format
@@ -79,7 +81,7 @@
             data.forEach(row => {
                 fileContent += row.map(cell => {
                     // Check if the cell value is a valid date and not just a number
-                    const isValidDate = !isNaN(Date.parse(cell)) && isNaN(cell);
+                    const isValidDate = moment(cell, ['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY'], true).isValid() && isNaN(cell);
                     return isValidDate ? formatDate(cell, datetimeFormat) : cell;
                 }).join(separator) + '\n';
             });
