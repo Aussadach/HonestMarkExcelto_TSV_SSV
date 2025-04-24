@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Honestmark report Excel to TSV SSV</title>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet"> -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
 </head>
@@ -19,9 +21,10 @@
                      <span style="color: red;"> ** This site used MS Co-Pilot to help with the code wiht Sheetjs and Moment.js </span>
                     </p>
                 <div class="form-group">
-                    <label for="upload">Upload an Excel file:</label>
-                    <input type="file" class="form-control-file" id="upload" accept=".xlsx, .xls, .csv" />
+                    <label for="upload" class="form-label">Upload an Excel file:</label>
+                    <input type="file" class="form-control" id="upload" accept=".xlsx, .xls, .csv" />
                 </div>
+                <br/>
                 <div class="form-group">
                     <label for="separator">Choose separator:</label>
                     <select class="form-control" id="separator">
@@ -29,13 +32,17 @@
                         <option value=";">Semicolon (;)</option>
                     </select>
                 </div>
+                <br/>
                 <div class="form-group">
                     <label for="datetimeFormat">Choose datetime format:</label>
                     <select class="form-control" id="datetimeFormat">
-                        <option value="date">Date only</option>
-                        <option value="datetime">Date and time</option>
+                        
+                        <option value="date">DD/MM/YYYY</option>
+                        <option value="datetime">DD/MM/YYYY HH:mm:ss</option>
+                        <option value="monthyear">MM.YYYY</option>
                     </select>
                 </div>
+                <br/>
                 <button class="btn btn-primary btn-block" id="downloadBtn">Download File</button>
             </div>
         </div>
@@ -72,20 +79,60 @@
             const ws = workbook.Sheets[firstSheetName];
             const data = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true });
 
+            // // Function to format datetime values using moment.js
+            // function formatDate(value, format) {
+            //     const date = moment(value, ['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY'], true);
+            //     if (!date.isValid()) return value;
+            //     //return format === 'datetime' ? date.format('YYYY/MM/DD HH:mm:ss') : (format === "date") ? date.format('DD/MM/YYYY') :  date.format('MM.YYYY') ;
+            //     return (format === 'datetime') ? (date.format('YYYY/MM/DD HH:mm:ss')) : ((format === "date") ? (date.format('DD/MM/YYYY')) : (date.format('MM.YYYY')))
+            // }
+            // Function to format datetime values using moment.js
             // Function to format datetime values using moment.js
             function formatDate(value, format) {
-                const date = moment(value, ['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY'], true);
-                if (!date.isValid()) return value;
-                return format === 'datetime' ? date.format('YYYY/MM/DD HH:mm:ss') : date.format('DD/MM/YYYY');
+            
+                // value = value.toString();
+                //     // Pre-process to pad single-digit day or month values
+                // if (value.match(/^\d{1}\/\d{1}\/\d{4}$/) || value.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+                //     const parts = value.split('/');
+                //     // Add leading zeroes for single-digit day/month
+                //         value = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+                // }
+
+                // console.log(value)
+
+                const date = moment(value, [
+                    'YYYY-MM-DD', 'DD/MM/YYYY', 'MM.YYYY', 'YYYY/MM/DD', 'DD-MM-YYYY','d/M/YYYY'
+                ], true);
+                if (!date.isValid()){ return value ;}
+            
+                switch (format) {
+                    case 'datetime':
+                        return date.format('DD/MM/YYYY HH:mm:ss');
+                    case 'date':
+                        return date.format('DD/MM/YYYY');
+                    case 'monthyear':
+                        return date.format('MM.YYYY');
+                    default:
+                        return value; // Return unmodified if format doesn't match
+                }
             }
+
+
 
             // Build TSV/CSV string manually using the chosen separator and datetime format
             let fileContent = '';
             data.forEach(row => {
                 fileContent += row.map(cell => {
+                    value = cell.toString();
                     // Check if the cell value is a valid date and not just a number
-                    const isValidDate = moment(cell, ['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY'], true).isValid() && isNaN(cell);
-                    return isValidDate ? formatDate(cell, datetimeFormat) : cell;
+                    if (value.match(/^\d{1}\/\d{1}\/\d{4}$/) || value.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+                    const parts = value.split('/');
+                    // Add leading zeroes for single-digit day/month
+                        value = `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+                }
+                //console.log(value)
+                    const isValidDate = moment(value, ['YYYY-MM-DD', 'DD/MM/YYYY','d/M/YYYY'], true).isValid() && isNaN(cell);
+                    return isValidDate ? formatDate(value, datetimeFormat) : cell;
                 }).join(separator) + '\n';
             });
 
